@@ -1,0 +1,50 @@
+[
+  {
+    "query": "weather in Tokyo",
+    "correct_tool": "weather_api"
+  },
+  {
+    "query": "rain forecast for Seattle",
+    "correct_tool": "weather_api"
+  },
+  {
+    "query": "latest Nvidia news",
+    "correct_tool": "news_search"
+  },
+  {
+    "query": "summarize recent Nvidia articles",
+    "correct_tool": "news_summary"
+  },
+  {
+    "query": "NVDA stock price",
+    "correct_tool": "finance_api"
+  },
+  {
+    "query": "find restaurants near me",
+    "correct_tool": "maps_places_api"
+  },
+  {
+    "query": "calculate square root of 256",
+    "correct_tool": "math_solver"
+  },
+  {
+    "query": "find Python AST parser example",
+    "correct_tool": "code_search"
+  },
+  {
+    "query": "translate hello to Spanish",
+    "correct_tool": "translation_service"
+  },
+  {
+    "query": "search the web for vector databases",
+    "correct_tool": "web_search"
+  },
+  {
+    "query": "show posts about ToolScout on social media",
+    "correct_tool": "social_search"
+  },
+  {
+    "query": "what meetings do I have tomorrow",
+    "correct_tool": "calendar_lookup"
+  }
+]

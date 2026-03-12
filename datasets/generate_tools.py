@@ -41,16 +41,39 @@ CATEGORY_CONFIGS = {
     },
     "news": {
         "prefix": "headline",
-        "core": {
-            "name": "news_api",
-            "description": "Get breaking news and recent headlines for a topic, company, or person.",
-            "arguments": ["topic"],
-            "examples": [
-                "latest Nvidia news",
-                "breaking news about Apple",
-                "recent AI headlines",
-            ],
-        },
+        "core_tools": [
+            {
+                "name": "news_api",
+                "description": "Get breaking news and recent headlines for a topic, company, or person.",
+                "arguments": ["topic"],
+                "examples": [
+                    "latest Nvidia news",
+                    "breaking news about Apple",
+                    "recent AI headlines",
+                ],
+            },
+            {
+                "name": "news_search",
+                "description": "Find news articles and source reports for a topic or company.",
+                "arguments": ["topic"],
+                "examples": [
+                    "find news articles about Nvidia",
+                    "search news for chip industry updates",
+                    "news search for Tesla coverage",
+                ],
+            },
+            {
+                "name": "news_summary",
+                "description": "Summarize news articles and produce a short briefing for a topic.",
+                "arguments": ["topic"],
+                "dependencies": ["news_search"],
+                "examples": [
+                    "summarize recent Nvidia articles",
+                    "brief me on the latest AI headlines",
+                    "news summary for Microsoft",
+                ],
+            },
+        ],
         "names": ["headline", "press", "bulletin", "coverage", "media"],
         "nouns": ["company", "topic", "industry", "person", "story"],
         "verbs": ["Get", "Fetch", "Search", "Track", "Monitor"],
@@ -217,9 +240,14 @@ def build_core_tools() -> List[Dict[str, object]]:
     tools: List[Dict[str, object]] = []
     for category in CATEGORY_CONFIGS:
         config = CATEGORY_CONFIGS[category]
-        core = dict(config["core"])
-        core["category"] = category
-        tools.append(core)
+        records = config.get("core_tools")
+        if records is None:
+            records = [config["core"]]
+
+        for record in records:
+            core = dict(record)
+            core["category"] = category
+            tools.append(core)
     return tools
 
 
@@ -351,15 +379,20 @@ def build_variant_tool(
         "arguments": arguments,
         "category": category,
         "examples": examples,
+        "dependencies": [],
     }
 
 
 def build_tools() -> List[Dict[str, object]]:
     tools = build_core_tools()
-    variants_per_category = (TOTAL_TOOLS - len(CATEGORY_CONFIGS)) // len(CATEGORY_CONFIGS)
+    remaining = TOTAL_TOOLS - len(tools)
+    category_count = len(CATEGORY_CONFIGS)
+    variants_per_category = remaining // category_count
+    remainder = remaining % category_count
 
     for category_index, category in enumerate(CATEGORY_CONFIGS):
-        for variant_index in range(variants_per_category):
+        extra_variant = 1 if category_index < remainder else 0
+        for variant_index in range(variants_per_category + extra_variant):
             tools.append(build_variant_tool(category, category_index, variant_index))
 
     if len(tools) != TOTAL_TOOLS:

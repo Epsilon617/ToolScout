@@ -1,0 +1,62 @@
+[
+  {
+    "query": "check Nvidia stock price",
+    "correct_tool": "finance_api",
+    "distractors": ["news_search", "news_api", "web_search"]
+  },
+  {
+    "query": "latest Nvidia news",
+    "correct_tool": "news_search",
+    "distractors": ["news_api", "finance_api", "web_search"]
+  },
+  {
+    "query": "summarize recent Nvidia articles",
+    "correct_tool": "news_summary",
+    "distractors": ["news_search", "news_api", "web_search"]
+  },
+  {
+    "query": "weather in Tokyo tomorrow",
+    "correct_tool": "weather_api",
+    "distractors": ["maps_places_api", "calendar_lookup", "web_search"]
+  },
+  {
+    "query": "find restaurants near me",
+    "correct_tool": "maps_places_api",
+    "distractors": ["web_search", "weather_api", "social_search"]
+  },
+  {
+    "query": "calculate square root of 256",
+    "correct_tool": "math_solver",
+    "distractors": ["code_search", "web_search", "translation_service"]
+  },
+  {
+    "query": "translate hello to Spanish",
+    "correct_tool": "translation_service",
+    "distractors": ["web_search", "code_search", "social_search"]
+  },
+  {
+    "query": "find Python AST parser example",
+    "correct_tool": "code_search",
+    "distractors": ["web_search", "translation_service", "math_solver"]
+  },
+  {
+    "query": "search the web for vector databases",
+    "correct_tool": "web_search",
+    "distractors": ["code_search", "news_search", "social_search"]
+  },
+  {
+    "query": "show posts about ToolScout on social media",
+    "correct_tool": "social_search",
+    "distractors": ["web_search", "news_search", "news_api"]
+  },
+  {
+    "query": "what meetings do I have tomorrow",
+    "correct_tool": "calendar_lookup",
+    "distractors": ["maps_places_api", "weather_api", "web_search"]
+  },
+  {
+    "query": "track Nvidia market updates",
+    "correct_tool": "finance_api",
+    "distractors": ["news_search", "news_api", "social_search"]
+  }
+]

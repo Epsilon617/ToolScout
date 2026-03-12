@@ -1,0 +1,94 @@
+{
+  "skills": [
+    {
+      "name": "news_research",
+      "description": "Find and summarize news articles for a topic or company.",
+      "tools": ["news_search", "news_summary"],
+      "examples": [
+        "latest Nvidia news",
+        "summarize AI chip headlines"
+      ]
+    },
+    {
+      "name": "market_intelligence",
+      "description": "Research company news, market context, and web coverage.",
+      "tools": ["finance_api", "news_api", "web_search"],
+      "examples": [
+        "market update for Nvidia",
+        "latest company outlook"
+      ]
+    },
+    {
+      "name": "finance_lookup",
+      "description": "Retrieve stock prices, market quotes, and exchange rates.",
+      "tools": ["finance_api"],
+      "examples": [
+        "NVDA stock price",
+        "USD to EUR exchange rate"
+      ]
+    },
+    {
+      "name": "weather_briefing",
+      "description": "Look up current weather and forecast information.",
+      "tools": ["weather_api"],
+      "examples": [
+        "weather in Tokyo",
+        "rain forecast for Seattle"
+      ]
+    },
+    {
+      "name": "local_discovery",
+      "description": "Find nearby places, restaurants, and web results for a location.",
+      "tools": ["maps_places_api", "web_search"],
+      "examples": [
+        "find restaurants near me",
+        "coffee shops in Soho"
+      ]
+    },
+    {
+      "name": "calculation",
+      "description": "Solve math expressions and numerical questions.",
+      "tools": ["math_solver"],
+      "examples": [
+        "calculate square root",
+        "evaluate 144 divided by 12"
+      ]
+    },
+    {
+      "name": "code_investigation",
+      "description": "Search code and supporting web documentation for engineering questions.",
+      "tools": ["code_search", "web_search"],
+      "examples": [
+        "find Python AST parser example",
+        "search for FAISS integration"
+      ]
+    },
+    {
+      "name": "translation_help",
+      "description": "Translate phrases and multilingual text.",
+      "tools": ["translation_service"],
+      "examples": [
+        "translate hello to Spanish",
+        "French translation for this email"
+      ]
+    },
+    {
+      "name": "social_monitoring",
+      "description": "Search social media discussions and related public web coverage.",
+      "tools": ["social_search", "web_search"],
+      "examples": [
+        "show posts about ToolScout on social media",
+        "social chatter about Nvidia"
+      ]
+    },
+    {
+      "name": "schedule_assistant",
+      "description": "Look up meetings and scheduling information.",
+      "tools": ["calendar_lookup"],
+      "examples": [
+        "what meetings do I have tomorrow",
+        "calendar for Friday"
+      ]
+    }
+  ]
+}

@@ -24,6 +24,7 @@ def build_registry(dataset: Dict[str, object]) -> ToolRegistry:
             description=tool["description"],
             args=tool.get("args", tool.get("arguments", [])),
             category=tool.get("category"),
+            dependencies=tool.get("dependencies", []),
             tags=tool.get("tags", []),
             examples=tool.get("examples", []),
         )

@@ -19,6 +19,7 @@ class ToolDefinition:
     examples: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     category: Optional[str] = None
+    dependencies: List[str] = field(default_factory=list)
 
     def to_embedding_text(self) -> str:
         arguments = ", ".join(self.args) if self.args else "none"
@@ -31,6 +32,8 @@ class ToolDefinition:
         ]
         if self.category:
             parts.append("category: {0}".format(self.category))
+        if self.dependencies:
+            parts.append("dependencies: {0}".format(", ".join(self.dependencies)))
         return " | ".join(parts)
 
     def to_prompt_text(self) -> str:
@@ -42,6 +45,8 @@ class ToolDefinition:
         ]
         if self.category:
             lines.append("Category: {0}".format(self.category))
+        if self.dependencies:
+            lines.append("Dependencies: {0}".format(", ".join(self.dependencies)))
         return "\n".join(lines)
 
     def to_dict(self, include_handler: bool = False) -> Dict[str, Any]:
@@ -51,6 +56,7 @@ class ToolDefinition:
             "args": list(self.args),
             "arguments": list(self.args),
             "category": self.category,
+            "dependencies": list(self.dependencies),
             "tags": list(self.tags),
             "examples": list(self.examples),
             "metadata": dict(self.metadata),
@@ -75,6 +81,7 @@ class ToolRegistry:
         metadata: Optional[Dict[str, Any]] = None,
         replace: bool = False,
         category: Optional[str] = None,
+        dependencies: Optional[Iterable[str]] = None,
     ) -> ToolDefinition:
         name = name.strip()
         description = description.strip()
@@ -93,6 +100,7 @@ class ToolRegistry:
             args=arg_list,
             handler=handler,
             category=category.strip() if isinstance(category, str) and category.strip() else None,
+            dependencies=[dependency.strip() for dependency in dependencies or []],
             tags=list(tags or []),
             examples=list(examples or []),
             metadata=dict(metadata or {}),
@@ -137,6 +145,7 @@ class ToolRegistry:
                     description=record["description"],
                     args=record.get("args", record.get("arguments", [])),
                     category=record.get("category"),
+                    dependencies=record.get("dependencies", []),
                     tags=record.get("tags", []),
                     examples=record.get("examples", []),
                     metadata=record.get("metadata", {}),
