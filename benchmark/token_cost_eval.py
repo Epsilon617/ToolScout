@@ -22,7 +22,8 @@ def build_registry(dataset: Dict[str, object]) -> ToolRegistry:
         registry.register_tool(
             name=tool["name"],
             description=tool["description"],
-            args=tool.get("args", []),
+            args=tool.get("args", tool.get("arguments", [])),
+            category=tool.get("category"),
             tags=tool.get("tags", []),
             examples=tool.get("examples", []),
         )
@@ -84,4 +85,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

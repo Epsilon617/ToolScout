@@ -29,3 +29,6 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["toolscout*"]
+
+[project.scripts]
+toolscout = "toolscout.cli:main"

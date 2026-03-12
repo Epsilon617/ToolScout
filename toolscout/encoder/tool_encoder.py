@@ -64,7 +64,15 @@ class ToolEncoder:
         self._resolved_backend = "sentence-transformers"
 
     def render_tool(self, tool: ToolDefinition) -> str:
-        return tool.to_embedding_text()
+        arguments = ", ".join(tool.args) if tool.args else "none"
+        examples = "; ".join(tool.examples) if tool.examples else "none"
+        parts = [
+            "name: {0}".format(tool.name),
+            "description: {0}".format(tool.description),
+            "args: {0}".format(arguments),
+            "examples: {0}".format(examples),
+        ]
+        return " | ".join(parts)
 
     def encode_tools(self, tools: Sequence[ToolDefinition]) -> np.ndarray:
         return self.encode_texts([self.render_tool(tool) for tool in tools])
@@ -114,4 +122,3 @@ class ToolEncoder:
         norms = np.linalg.norm(vectors, axis=1, keepdims=True)
         norms[norms == 0.0] = 1.0
         return vectors / norms
-

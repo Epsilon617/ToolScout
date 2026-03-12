@@ -32,11 +32,15 @@ ToolScout/
 │   ├── scaling_test.py
 │   └── token_cost_eval.py
 ├── datasets/
+│   ├── generate_tools.py
+│   ├── tools_1000.json
 │   └── synthetic_tools.json
 ├── examples/
+│   ├── retrieval_demo.py
 │   ├── openai_agent_demo.py
 │   └── simple_agent.py
 ├── toolscout/
+│   ├── cli.py
 │   ├── encoder/
 │   │   └── tool_encoder.py
 │   ├── executor/
@@ -89,6 +93,12 @@ for result in results:
     print(result.rank, result.tool.name, round(result.score, 4))
 ```
 
+Generate the large synthetic catalog:
+
+```bash
+python datasets/generate_tools.py
+```
+
 ## Core API
 
 ### Register tools
@@ -131,6 +141,18 @@ Run the simple end-to-end demo:
 python examples/simple_agent.py --query "latest news about Nvidia"
 ```
 
+Run the large-scale retrieval demo:
+
+```bash
+python examples/retrieval_demo.py
+```
+
+Search from the CLI:
+
+```bash
+toolscout search "latest Nvidia news"
+```
+
 Run the OpenAI-backed demo:
 
 ```bash
@@ -139,6 +161,22 @@ python examples/openai_agent_demo.py --model gpt-4.1-mini --query "latest news a
 ```
 
 The OpenAI demo retrieves the top-k candidate tools first, then asks the model to choose one tool and fill its arguments using only those candidates.
+
+## Large-Scale Tool Retrieval Demo
+
+The repository includes a generated 1000-tool catalog spanning weather, finance, news, maps, math, code, translation, search, social, and calendar tools.
+
+Example:
+
+```text
+Query:
+"latest Nvidia news"
+
+Retrieved tools:
+1 news_api
+2 web_search
+3 finance_api
+```
 
 ## Benchmarks
 
@@ -157,8 +195,18 @@ python benchmark/token_cost_eval.py --top-k 5
 Scaling behavior up to 1000 tools:
 
 ```bash
-python benchmark/scaling_test.py --target-tools 1000 --runs 50
+python benchmark/scaling_test.py --runs 50
 ```
+
+Example scaling results:
+
+| tools | latency | token reduction |
+|------|--------|----------------|
+| 10 | 0.035 ms | 50.1% |
+| 100 | 0.043 ms | 94.8% |
+| 1000 | 0.074 ms | 99.5% |
+
+These example numbers were measured on the built-in keyword encoder plus NumPy index fallback in this repository's current environment. The same benchmark also reports `recall@5`, which reached `1.000` at 10, 100, and 1000 tools on the generated benchmark queries.
 
 ## Synthetic Dataset
 
@@ -170,13 +218,14 @@ python benchmark/scaling_test.py --target-tools 1000 --runs 50
 
 This is enough to exercise retrieval quality and scaling without external services.
 
+`datasets/tools_1000.json` is the larger generated catalog used by the new retrieval demo, CLI, and multi-scale benchmark. It contains 1000 synthetic tools and benchmark queries covering the ten supported categories.
+
 ## Notes
 
 - The default embedding model is `sentence-transformers/all-MiniLM-L6-v2`.
-- Tool metadata embeddings combine the tool name, description, arguments, tags, and examples.
+- Tool metadata embeddings concatenate the tool name, description, arguments, and examples into one embedding string.
 - The included fallback backend is intended for development and smoke tests, not final production accuracy measurements.
 
 ## License
 
 MIT
-

@@ -18,37 +18,39 @@ class ToolDefinition:
     tags: List[str] = field(default_factory=list)
     examples: List[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    category: Optional[str] = None
 
     def to_embedding_text(self) -> str:
         arguments = ", ".join(self.args) if self.args else "none"
-        tags = ", ".join(self.tags) if self.tags else "none"
         examples = "; ".join(self.examples) if self.examples else "none"
-        return "\n".join(
-            [
-                "tool",
-                "name: {0}".format(self.name),
-                "description: {0}".format(self.description),
-                "arguments: {0}".format(arguments),
-                "tags: {0}".format(tags),
-                "examples: {0}".format(examples),
-            ]
-        )
+        parts = [
+            "name: {0}".format(self.name),
+            "description: {0}".format(self.description),
+            "args: {0}".format(arguments),
+            "examples: {0}".format(examples),
+        ]
+        if self.category:
+            parts.append("category: {0}".format(self.category))
+        return " | ".join(parts)
 
     def to_prompt_text(self) -> str:
         arguments = ", ".join(self.args) if self.args else "none"
-        return "\n".join(
-            [
-                "Tool: {0}".format(self.name),
-                "Description: {0}".format(self.description),
-                "Arguments: {0}".format(arguments),
-            ]
-        )
+        lines = [
+            "Tool: {0}".format(self.name),
+            "Description: {0}".format(self.description),
+            "Arguments: {0}".format(arguments),
+        ]
+        if self.category:
+            lines.append("Category: {0}".format(self.category))
+        return "\n".join(lines)
 
     def to_dict(self, include_handler: bool = False) -> Dict[str, Any]:
         payload = {
             "name": self.name,
             "description": self.description,
             "args": list(self.args),
+            "arguments": list(self.args),
+            "category": self.category,
             "tags": list(self.tags),
             "examples": list(self.examples),
             "metadata": dict(self.metadata),
@@ -72,6 +74,7 @@ class ToolRegistry:
         examples: Optional[Iterable[str]] = None,
         metadata: Optional[Dict[str, Any]] = None,
         replace: bool = False,
+        category: Optional[str] = None,
     ) -> ToolDefinition:
         name = name.strip()
         description = description.strip()
@@ -89,6 +92,7 @@ class ToolRegistry:
             description=description,
             args=arg_list,
             handler=handler,
+            category=category.strip() if isinstance(category, str) and category.strip() else None,
             tags=list(tags or []),
             examples=list(examples or []),
             metadata=dict(metadata or {}),
@@ -131,7 +135,8 @@ class ToolRegistry:
                 self.register_tool(
                     name=record["name"],
                     description=record["description"],
-                    args=record.get("args", []),
+                    args=record.get("args", record.get("arguments", [])),
+                    category=record.get("category"),
                     tags=record.get("tags", []),
                     examples=record.get("examples", []),
                     metadata=record.get("metadata", {}),
@@ -145,4 +150,3 @@ class ToolRegistry:
         registry = cls()
         registry.extend_from_json(path)
         return registry
-
