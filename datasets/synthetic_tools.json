@@ -1,0 +1,222 @@
+{
+  "tools": [
+    {
+      "name": "weather_api",
+      "description": "Get current weather and short-range forecasts for a city.",
+      "args": ["city"],
+      "tags": ["weather", "forecast"],
+      "examples": ["weather in Tokyo", "forecast for London tomorrow"]
+    },
+    {
+      "name": "news_search",
+      "description": "Search recent news articles about a topic, company, or person.",
+      "args": ["topic"],
+      "tags": ["news", "search"],
+      "examples": ["latest news about Nvidia", "recent coverage on Apple"]
+    },
+    {
+      "name": "stock_quote",
+      "description": "Get the latest market price for a stock ticker.",
+      "args": ["ticker"],
+      "tags": ["finance", "stocks"],
+      "examples": ["NVDA stock price", "quote for MSFT"]
+    },
+    {
+      "name": "currency_converter",
+      "description": "Convert money between currencies using recent FX rates.",
+      "args": ["amount", "base_currency", "quote_currency"],
+      "tags": ["finance", "fx"],
+      "examples": ["convert 250 USD to EUR", "100 GBP in JPY"]
+    },
+    {
+      "name": "flight_search",
+      "description": "Search available flights between two cities on a given date.",
+      "args": ["origin", "destination", "date"],
+      "tags": ["travel", "flights"],
+      "examples": ["flight from London to Berlin tomorrow", "NYC to SF on Friday"]
+    },
+    {
+      "name": "hotel_search",
+      "description": "Find hotels in a city for a date range and guest count.",
+      "args": ["city", "check_in", "check_out"],
+      "tags": ["travel", "lodging"],
+      "examples": ["hotels in Paris this weekend", "stay in Rome from May 3 to May 5"]
+    },
+    {
+      "name": "calendar_create",
+      "description": "Create a calendar event with title, date, and time.",
+      "args": ["title", "date", "time"],
+      "tags": ["calendar", "productivity"],
+      "examples": ["schedule budget review next Tuesday at 3pm"]
+    },
+    {
+      "name": "calendar_lookup",
+      "description": "Look up existing calendar events for a day.",
+      "args": ["date"],
+      "tags": ["calendar", "schedule"],
+      "examples": ["what is on my calendar Friday", "meetings on 2026-03-20"]
+    },
+    {
+      "name": "email_send",
+      "description": "Send an email to one or more recipients.",
+      "args": ["to", "subject", "body"],
+      "tags": ["email", "communication"],
+      "examples": ["email the product team a launch update"]
+    },
+    {
+      "name": "docs_search",
+      "description": "Search product or API documentation for a topic or keyword.",
+      "args": ["query"],
+      "tags": ["documentation", "search"],
+      "examples": ["FastAPI dependency injection docs", "OpenAI responses API reference"]
+    },
+    {
+      "name": "issue_tracker",
+      "description": "Search repository issues by assignee, status, or keyword.",
+      "args": ["repository", "query"],
+      "tags": ["engineering", "issues"],
+      "examples": ["open issues assigned to Alice in ToolScout", "bug reports tagged retrieval"]
+    },
+    {
+      "name": "repo_search",
+      "description": "Search source code repositories for files, symbols, or text.",
+      "args": ["repository", "query"],
+      "tags": ["engineering", "code-search"],
+      "examples": ["find FAISS integration in ToolScout", "search for query planner"]
+    },
+    {
+      "name": "customer_lookup",
+      "description": "Retrieve customer profile information from a CRM.",
+      "args": ["customer_name"],
+      "tags": ["crm", "customer"],
+      "examples": ["look up Contoso account owner", "customer profile for Acme"]
+    },
+    {
+      "name": "database_query",
+      "description": "Run an analytical SQL query against a warehouse.",
+      "args": ["sql"],
+      "tags": ["database", "analytics"],
+      "examples": ["top customers by revenue last quarter", "daily active users this week"]
+    },
+    {
+      "name": "wiki_search",
+      "description": "Search a company or public knowledge base for background information.",
+      "args": ["topic"],
+      "tags": ["knowledge", "search"],
+      "examples": ["background on Nvidia", "what is retrieval augmented generation"]
+    },
+    {
+      "name": "package_tracker",
+      "description": "Track the shipment status of a package by tracking number.",
+      "args": ["tracking_number"],
+      "tags": ["shipping", "logistics"],
+      "examples": ["track package 1Z999", "where is my FedEx shipment"]
+    },
+    {
+      "name": "social_listen",
+      "description": "Search social media posts for a brand, topic, or trend.",
+      "args": ["topic"],
+      "tags": ["social", "search"],
+      "examples": ["recent Reddit posts about electric cars", "social chatter around ToolScout"]
+    },
+    {
+      "name": "sentiment_analyzer",
+      "description": "Score text or document collections for sentiment.",
+      "args": ["text"],
+      "tags": ["nlp", "sentiment"],
+      "examples": ["sentiment of customer reviews", "analyze tone in social posts"]
+    },
+    {
+      "name": "translation_service",
+      "description": "Translate text between languages.",
+      "args": ["text", "target_language"],
+      "tags": ["language", "translation"],
+      "examples": ["translate this email to Spanish", "French translation for release notes"]
+    },
+    {
+      "name": "image_generator",
+      "description": "Generate an image from a text prompt.",
+      "args": ["prompt"],
+      "tags": ["image", "generation"],
+      "examples": ["create a product hero image", "generate a skyline poster"]
+    },
+    {
+      "name": "meeting_transcriber",
+      "description": "Transcribe and summarize audio recordings of meetings.",
+      "args": ["audio_url"],
+      "tags": ["audio", "transcription"],
+      "examples": ["transcribe yesterday's planning call"]
+    },
+    {
+      "name": "web_search",
+      "description": "Run a broad web search across the public internet.",
+      "args": ["query"],
+      "tags": ["web", "search"],
+      "examples": ["best laptops for developers", "industry overview of vector databases"]
+    },
+    {
+      "name": "maps_route",
+      "description": "Compute driving or walking directions between two locations.",
+      "args": ["origin", "destination"],
+      "tags": ["maps", "navigation"],
+      "examples": ["route from Oxford to Cambridge", "walking directions to the station"]
+    },
+    {
+      "name": "task_manager",
+      "description": "Create and update tasks in a personal task system.",
+      "args": ["title"],
+      "tags": ["tasks", "productivity"],
+      "examples": ["add buy groceries to my todo list", "create a task to review the PR"]
+    }
+  ],
+  "queries": [
+    {
+      "query": "latest news about Nvidia",
+      "expected_tools": ["news_search", "stock_quote"]
+    },
+    {
+      "query": "weather in Tokyo tomorrow",
+      "expected_tools": ["weather_api"]
+    },
+    {
+      "query": "book a flight from London to Berlin next Monday",
+      "expected_tools": ["flight_search"]
+    },
+    {
+      "query": "convert 250 USD to EUR",
+      "expected_tools": ["currency_converter"]
+    },
+    {
+      "query": "schedule budget review next Tuesday at 3pm",
+      "expected_tools": ["calendar_create"]
+    },
+    {
+      "query": "what meetings do I have on Friday",
+      "expected_tools": ["calendar_lookup"]
+    },
+    {
+      "query": "search FastAPI dependency injection docs",
+      "expected_tools": ["docs_search"]
+    },
+    {
+      "query": "find open issues assigned to Alice in ToolScout",
+      "expected_tools": ["issue_tracker"]
+    },
+    {
+      "query": "show recent Reddit posts about electric cars",
+      "expected_tools": ["social_listen", "sentiment_analyzer"]
+    },
+    {
+      "query": "translate this message to Spanish",
+      "expected_tools": ["translation_service"]
+    },
+    {
+      "query": "route from Oxford to Cambridge",
+      "expected_tools": ["maps_route"]
+    },
+    {
+      "query": "track package 1Z999",
+      "expected_tools": ["package_tracker"]
+    }
+  ]
+}
