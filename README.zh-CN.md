@@ -4,6 +4,8 @@
 
 [English](README.md)
 
+![ToolScout architecture overview](assets/toolscout-architecture-overview.png)
+
 ToolScout 用来解决一个很实际的问题：当 Agent 拥有几百到几千个工具时，如果把所有工具都塞进提示词，通常会带来更高延迟、更差的工具选择，以及更多看起来合理但实际上不可靠的调用。ToolScout 先检索、再重排，只把最相关且更可靠的工具交给 Agent。
 
 ## ToolScout 解决什么问题
@@ -16,6 +18,12 @@ ToolScout 用来解决一个很实际的问题：当 Agent 拥有几百到几千
 - 工具描述相似时容易选到“不稳定但看起来很像”的工具
 
 ToolScout 的核心思路是先缩小候选集合，再结合历史执行反馈做排序。
+
+## 什么时候特别适合用 ToolScout
+
+- **企业内部工具库**：当内部 API、微服务或平台工具达到几百个以上时。
+- **高风险任务**：当选错工具的代价很高，例如误调用 `delete_user` 而不是 `get_user`。
+- **成本敏感应用**：当你希望更小、更便宜的模型也能在受限上下文里稳定完成工具选择。
 
 ## 快速体验
 
@@ -135,11 +143,13 @@ ToolScout 的评测分为四层：
 
 离线示例结果，来自 `python benchmark/generate_eval_report.py --top-k 5`：
 
-| Method | Precision@1 | Pass@1 | Avg Latency |
-| ------ | ----------: | -----: | ----------: |
+| Method | Precision@1 | Pass@1（任务成功） | Avg Latency |
+| ------ | ----------: | ----------------: | ----------: |
 | Random Retrieval | 0.417 | 0.000 | 133.289 ms |
 | Semantic Retrieval | 0.833 | 0.750 | 117.555 ms |
-| ToolScout | 1.000 | 0.917 | 111.454 ms |
+| **ToolScout** | **1.000** | **0.917** | **111.454 ms** |
+
+在这组离线结果里，ToolScout 相比纯语义检索同时提升了成功率，并且延迟更低。
 
 以下评测脚本都可以离线运行：
 

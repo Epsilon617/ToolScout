@@ -4,6 +4,8 @@
 
 [简体中文](README.zh-CN.md)
 
+![ToolScout architecture overview](assets/toolscout-architecture-overview.png)
+
 ToolScout helps LLM agents work with hundreds or thousands of tools without putting the entire tool catalog into every prompt. It retrieves and reranks the most relevant tools using semantic similarity, skill routing, tool dependencies, and execution feedback, which reduces prompt size, latency, and bad tool choices.
 
 ## Why This Exists
@@ -16,6 +18,12 @@ LLM agents often degrade when the prompt contains a very large tool list:
 - more semantically plausible but unreliable tool picks
 
 ToolScout addresses this by narrowing the tool set first, then letting the agent reason over a smaller and higher-quality candidate list.
+
+## When to Use ToolScout
+
+- **Enterprise Tools**: when your internal API catalog grows to hundreds of endpoints or more.
+- **High-Stakes Tasks**: when picking the wrong tool, such as `delete_user` instead of `get_user`, is unacceptable.
+- **Cost-Sensitive Apps**: when you want smaller or cheaper models to operate over a compact tool shortlist instead of a full catalog.
 
 ## Quick Demo
 
@@ -137,11 +145,13 @@ ToolScout evaluates tool routing at multiple layers.
 
 Example offline summary from `python benchmark/generate_eval_report.py --top-k 5`:
 
-| Method | Precision@1 | Pass@1 | Avg Latency |
-| ------ | ----------: | -----: | ----------: |
+| Method | Precision@1 | Pass@1 (Success) | Avg Latency |
+| ------ | ----------: | ----------------: | ----------: |
 | Random Retrieval | 0.417 | 0.000 | 133.289 ms |
 | Semantic Retrieval | 0.833 | 0.750 | 117.555 ms |
-| ToolScout | 1.000 | 0.917 | 111.454 ms |
+| **ToolScout** | **1.000** | **0.917** | **111.454 ms** |
+
+In this offline benchmark snapshot, ToolScout improves both task success and latency over pure semantic retrieval.
 
 All evaluation scripts run offline by default:
 
