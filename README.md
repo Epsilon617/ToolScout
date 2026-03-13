@@ -1,29 +1,15 @@
 # ToolScout
 
-> ToolScout: Execution-aware tool routing for LLM agents.
+> Execution-aware tool routing for LLM agents.
+
+![Python](https://img.shields.io/badge/python-3.9+-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 [简体中文](README.zh-CN.md)
 
 ![ToolScout architecture overview](assets/toolscout-architecture-overview.png)
 
-ToolScout helps LLM agents work with hundreds or thousands of tools without putting the entire tool catalog into every prompt. It retrieves and reranks the most relevant tools using semantic similarity, skill routing, tool dependencies, and execution feedback, which reduces prompt size, latency, and bad tool choices.
-
-## Why This Exists
-
-LLM agents often degrade when the prompt contains a very large tool list:
-
-- more tokens
-- slower responses
-- worse tool selection
-- more semantically plausible but unreliable tool picks
-
-ToolScout addresses this by narrowing the tool set first, then letting the agent reason over a smaller and higher-quality candidate list.
-
-## When to Use ToolScout
-
-- **Enterprise Tools**: when your internal API catalog grows to hundreds of endpoints or more.
-- **High-Stakes Tasks**: when picking the wrong tool, such as `delete_user` instead of `get_user`, is unacceptable.
-- **Cost-Sensitive Apps**: when you want smaller or cheaper models to operate over a compact tool shortlist instead of a full catalog.
+LLM agents often need to work with hundreds or thousands of tools. Passing the full tool catalog into every prompt increases latency, wastes context, and makes tool selection less reliable. ToolScout retrieves and reranks tools using semantic similarity, skill routing, dependency expansion, and execution feedback so the agent only sees a compact, higher-quality shortlist.
 
 ## Quick Demo
 
@@ -34,7 +20,7 @@ pip install -e .
 toolscout search "latest Nvidia news"
 ```
 
-Expected output:
+Example output:
 
 ```text
 Top tools:
@@ -51,42 +37,54 @@ toolscout skill "latest Nvidia news"
 python examples/retrieval_demo.py
 ```
 
-## Architecture
+## Motivation
+
+ToolScout is built for the failure modes that appear once agent systems stop being toy demos.
+
+- `Tool explosion`: large internal or external tool catalogs do not fit cleanly into a single prompt.
+- `Prompt pressure`: longer tool lists increase token cost and slow down planning.
+- `Description mismatch`: tool metadata may look relevant even when a tool is flaky, slow, or poorly aligned with real execution success.
+
+The key idea is simple: do not rank tools by semantics alone. ToolScout combines semantic retrieval with execution-aware reranking so the system can prefer tools that are both relevant and historically reliable.
+
+## When to Use ToolScout
+
+- **Enterprise Tools**: when your internal API catalog grows to hundreds of endpoints or more.
+- **High-Stakes Tasks**: when picking the wrong tool, such as `delete_user` instead of `get_user`, is unacceptable.
+- **Cost-Sensitive Apps**: when you want smaller or cheaper models to operate over a compact tool shortlist instead of a full catalog.
+
+## Architecture Overview
 
 ```text
-User Query
-   |
-   v
-Skill Routing
-   |
-   v
+Query
+  |
+  v
+Skill Router
+  |
+  v
 Tool Retrieval
-   |
-   v
+  |
+  v
 Execution-aware Reranking
-   |
-   v
+  |
+  v
 Selected Tools
-   |
-   v
-LLM Agent
-   |
-   v
-Tool Execution
-   |
-   v
+  |
+  v
+Agent Execution
+  |
+  v
 Execution Feedback
 ```
 
-What each step does:
+What each stage does:
 
-- `Skill Routing`: maps the query to a higher-level workflow such as `news_research`.
-- `Tool Retrieval`: pulls the top semantic candidates from the tool catalog.
-- `Execution-aware Reranking`: prefers tools that are both relevant and historically reliable.
+- `Skill Router`: maps the query to a higher-level workflow such as `news_research`.
+- `Tool Retrieval`: pulls the strongest semantic candidates from the tool catalog.
+- `Execution-aware Reranking`: blends semantic relevance with success rate and latency.
 - `Selected Tools`: keeps the prompt small by passing only top candidates downstream.
-- `LLM Agent`: plans with a constrained tool set instead of the full library.
-- `Tool Execution`: runs the chosen tool or a simulator-backed equivalent.
-- `Execution Feedback`: stores success and latency so future ranking improves.
+- `Agent Execution`: lets the LLM plan and call tools on a reduced tool set.
+- `Execution Feedback`: stores outcomes so future ranking can improve.
 
 ## Key Features
 
@@ -96,15 +94,11 @@ What each step does:
 - Execution-aware reranking using success rate and latency
 - MCP-compatible tool loading
 - Offline evaluation framework with simulator-backed execution
-- NumPy fallback path for local runs without FAISS or sentence-transformers
-
-## Why ToolScout?
-
-Traditional tool retrieval usually ranks tools by semantic similarity alone. That is useful, but tool descriptions do not capture real-world reliability: two tools can look equally relevant while one fails more often or runs much slower.
-
-ToolScout adds execution-aware routing. It combines semantic matching with historical execution outcomes so the system can favor tools that actually work in practice, not just tools that read well in metadata.
+- Scalable retrieval with FAISS or a lightweight NumPy fallback
 
 ## Installation
+
+Clone the repository and install the lightweight default setup:
 
 ```bash
 git clone https://github.com/Epsilon617/toolscout.git
@@ -112,18 +106,20 @@ cd toolscout
 pip install -e .
 ```
 
-Optional dependencies:
+Optional extras:
 
-- `faiss-cpu` for vector indexing
-- `sentence-transformers` for dense embeddings
-- `openai` only for the optional OpenAI demo or judge mode
+- `pip install -e .[embeddings]` for FAISS + sentence-transformers
+- `pip install -e .[openai]` for the OpenAI demo and judge mode
+- `pip install -e .[full]` for everything
 
-If those are unavailable, ToolScout falls back to its deterministic local backend so examples and benchmarks still run offline.
+Default installation is intentionally lightweight and uses the local NumPy + keyword fallback backend. If optional packages are unavailable, ToolScout still runs offline examples and benchmarks.
 
-## Core Commands
+## Usage
+
+### CLI
 
 ```bash
-toolscout search "latest Nvidia news"
+toolscout search "weather in Tokyo"
 toolscout search "weather in Tokyo" --execution-aware
 toolscout search "latest Nvidia news" --graph-aware
 toolscout skill "latest Nvidia news"
@@ -132,9 +128,41 @@ toolscout feedback-stats
 toolscout load-mcp path/to/mcp_tools.json
 ```
 
+### Python
+
+```python
+from toolscout import ToolRegistry, ToolRetriever
+
+registry = ToolRegistry()
+registry.register_tool(
+    name="weather_api",
+    description="Get weather for a city",
+    args=["city"],
+)
+registry.register_tool(
+    name="news_search",
+    description="Fetch recent news coverage for a topic or company",
+    args=["topic"],
+)
+
+retriever = ToolRetriever(registry=registry)
+retriever.fit()
+
+results = retriever.search("latest Nvidia news", top_k=2)
+for hit in results:
+    print(hit.rank, hit.tool.name, round(hit.score, 4))
+```
+
+### More Examples
+
+- `python examples/simple_agent.py --query "latest news about Nvidia"`
+- `python examples/retrieval_demo.py`
+- `python examples/langgraph_agent.py --query "summarize recent Nvidia articles"`
+- `python examples/openai_agent_demo.py --model gpt-4.1-mini --query "latest news about Nvidia"`
+
 ## Evaluation
 
-ToolScout evaluates tool routing at multiple layers.
+ToolScout evaluates tool routing at multiple layers rather than relying on retrieval metrics alone.
 
 ### Evaluation Layers
 
@@ -163,14 +191,14 @@ All evaluation scripts run offline by default:
 
 `judge_eval.py` supports `openai` mode as an optional external judge, but the default offline path uses `mock` mode. End-to-end evaluation uses `ToolExecutionSimulator` when real APIs are unavailable.
 
-## Dataset Summary
+## Evaluation Dataset
 
 Evaluation dataset:
 
-- 12 primary benchmark queries
+- 12 benchmark queries
 - 1000-tool synthetic catalog
 - 12 hard-negative cases
-- 1 explicit multi-step task: `news_search -> news_summary`
+- 1 explicit multi-step tool chain: `news_search -> news_summary`
 - 6 Chinese cross-lingual robustness queries
 
 The datasets are intentionally lightweight so the full evaluation stack can run on a standard local Python environment.
@@ -188,50 +216,47 @@ Supported tool categories:
 - `social`
 - `calendar`
 
-## Evaluation Flow
+### Evaluation Flow
 
 ```text
 Query
-   |
-   v
+  |
+  v
 ToolScout Retrieval
-   |
-   v
+  |
+  v
 Top-K Tools
-   |
-   v
+  |
+  v
 Execution Simulator
-   |
-   v
+  |
+  v
 Success / Failure Logging
-   |
-   v
+  |
+  v
 Execution-aware Ranking Update
 ```
 
 This loop lets ToolScout move beyond one-shot retrieval metrics and measure whether the selected tool actually succeeds.
 
-## Project Layout
+## Repository Structure
 
 ```text
-toolscout/
-  cli.py
-  execution_feedback.py
-  mcp_adapter.py
-  skill_registry.py
-  skill_retriever.py
-  tool_graph.py
-  tool_simulator.py
-  encoder/
-  executor/
-  index/
-  registry/
-  retriever/
-examples/
-benchmark/
-datasets/
-data/
+toolscout/    core library, CLI, registries, retrieval, graph, feedback
+benchmark/    retrieval, decision, execution, and robustness evaluation
+datasets/     synthetic tools, skills, query sets, and hard negatives
+examples/     simple agent, retrieval demo, LangGraph demo, OpenAI demo
+assets/       README images
 ```
+
+## Contributing
+
+Contributions are welcome.
+
+- Fork the repository
+- Create a feature branch
+- Run the offline examples or benchmarks relevant to your change
+- Open a pull request with a clear summary of the behavior change
 
 ## Roadmap
 
