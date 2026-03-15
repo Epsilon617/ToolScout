@@ -21,6 +21,8 @@ from benchmark.eval_utils import (
     load_json,
     method_label,
     search_with_method,
+    write_csv_report,
+    write_json_report,
 )
 
 
@@ -205,7 +207,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--method",
-        choices=["random", "semantic", "semantic_rerank", "toolscout", "baseline", "all"],
+        choices=["random", "lexical", "bm25", "semantic", "semantic_rerank", "toolscout", "baseline", "all"],
         default="all",
         help="Method to evaluate.",
     )
@@ -224,6 +226,16 @@ def main() -> None:
         "--verbose",
         action="store_true",
         help="Print per-query judgments.",
+    )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        help="Optional path to write structured JSON results.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        help="Optional path to write the summary table as CSV.",
     )
     args = parser.parse_args()
 
@@ -271,6 +283,28 @@ def main() -> None:
                 print("Tools: {0}".format(", ".join(item["retrieved_tools"])))
                 print("Judgment: {0}".format(json.dumps(item["judgment"], ensure_ascii=False)))
                 print("")
+
+    if args.output_json:
+        write_json_report(
+            args.output_json,
+            {
+                "evaluation": "judge",
+                "judge_mode": args.judge_mode,
+                "top_k": args.top_k,
+                "dataset_statistics": stats,
+                "results": results,
+                "judgments": [
+                    {"method": method_name, "judgments": judgments}
+                    for method_name, judgments in per_method_judgments
+                ],
+            },
+        )
+    if args.output_csv:
+        write_csv_report(
+            args.output_csv,
+            rows=results,
+            fieldnames=["method", "average_adequacy_score", "adequacy_rate", "avg_latency_ms"],
+        )
 
 
 if __name__ == "__main__":

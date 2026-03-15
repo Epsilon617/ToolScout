@@ -9,3 +9,11 @@ build/
 dist/
 *.egg-info/
 data/*.json
+plans/
+paper/
+results/
+runs/
+artifacts/
+notes/
+wandb/
+mlruns/

@@ -19,6 +19,8 @@ from benchmark.eval_utils import (
     mutate_tool_records,
     replicate_tool_records,
     search_with_method,
+    write_csv_report,
+    write_json_report,
 )
 
 
@@ -118,42 +120,69 @@ def evaluate_robustness(
     }
 
 
-def render_summary_table(metrics: Dict[str, object], top_k: int) -> str:
+def robustness_rows(metrics: Dict[str, object], top_k: int) -> List[Dict[str, object]]:
     schema = metrics["schema_mutation"]
     sprawl_rows = metrics["tool_sprawl"]
+    rows = [
+        {
+            "test": "Schema Mutation",
+            "metric": "Recall@{0}".format(top_k),
+            "value": schema["mutated"]["recall_at_k"],
+        },
+        {
+            "test": "Schema Mutation",
+            "metric": "Precision@1",
+            "value": schema["mutated"]["precision_at_1"],
+        },
+        {
+            "test": "Schema Mutation",
+            "metric": "Latency",
+            "value": schema["mutated"]["avg_latency_ms"],
+        },
+        {
+            "test": "Cross-Lingual Retrieval",
+            "metric": "Recall@{0}".format(top_k),
+            "value": metrics["cross_lingual"]["recall_at_k"],
+        },
+        {
+            "test": "Cross-Lingual Retrieval",
+            "metric": "Precision@1",
+            "value": metrics["cross_lingual"]["precision_at_1"],
+        },
+        {
+            "test": "Cross-Lingual Retrieval",
+            "metric": "Latency",
+            "value": metrics["cross_lingual"]["avg_latency_ms"],
+        },
+    ]
+    for row in sprawl_rows:
+        rows.append(
+            {
+                "test": "Tool Sprawl {0}".format(row["tool_count"]),
+                "metric": "Recall@{0}".format(top_k),
+                "value": row["recall_at_k"],
+            }
+        )
+        rows.append(
+            {
+                "test": "Tool Sprawl {0}".format(row["tool_count"]),
+                "metric": "Latency",
+                "value": row["avg_latency_ms"],
+            }
+        )
+    return rows
+
+
+def render_summary_table(metrics: Dict[str, object], top_k: int) -> str:
     lines = [
         "| Test | Metric | Result |",
         "| ---- | ------ | ------ |",
-        "| Schema Mutation | Recall@{0} | {1:.3f} |".format(
-            top_k,
-            schema["mutated"]["recall_at_k"],
-        ),
-        "| Schema Mutation | Precision@1 | {0:.3f} |".format(
-            schema["mutated"]["precision_at_1"]
-        ),
-        "| Schema Mutation | Latency | {0:.3f} ms |".format(
-            schema["mutated"]["avg_latency_ms"]
-        ),
-        "| Cross-Lingual Retrieval | Recall@{0} | {1:.3f} |".format(
-            top_k,
-            metrics["cross_lingual"]["recall_at_k"],
-        ),
-        "| Cross-Lingual Retrieval | Precision@1 | {0:.3f} |".format(
-            metrics["cross_lingual"]["precision_at_1"]
-        ),
-        "| Cross-Lingual Retrieval | Latency | {0:.3f} ms |".format(
-            metrics["cross_lingual"]["avg_latency_ms"]
-        ),
     ]
-    for row in sprawl_rows:
+    for row in robustness_rows(metrics, top_k=top_k):
+        suffix = " ms" if row["metric"] == "Latency" else ""
         lines.append(
-            "| Tool Sprawl {tool_count} | Recall@{top_k} | {recall_at_k:.3f} |".format(
-                top_k=top_k,
-                **row
-            )
-        )
-        lines.append(
-            "| Tool Sprawl {tool_count} | Latency | {avg_latency_ms:.3f} ms |".format(
+            "| {test} | {metric} | {value:.3f}{suffix} |".format(
+                suffix=suffix,
                 **row
             )
         )
@@ -184,7 +213,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--method",
-        choices=["random", "semantic", "semantic_rerank", "toolscout", "baseline"],
+        choices=["random", "lexical", "bm25", "semantic", "semantic_rerank", "toolscout", "baseline"],
         default="toolscout",
         help="Method to stress-test.",
     )
@@ -204,6 +233,16 @@ def main() -> None:
         "--sprawl-targets",
         default="100,1000,10000",
         help="Comma-separated tool counts for tool sprawl evaluation.",
+    )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        help="Optional path to write structured JSON results.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        help="Optional path to write the summary table as CSV.",
     )
     args = parser.parse_args()
 
@@ -230,6 +269,24 @@ def main() -> None:
     print(format_dataset_statistics(stats))
     print("")
     print(render_summary_table(metrics, top_k=args.top_k))
+
+    if args.output_json:
+        write_json_report(
+            args.output_json,
+            {
+                "evaluation": "robustness",
+                "method": args.method,
+                "top_k": args.top_k,
+                "dataset_statistics": stats,
+                "metrics": metrics,
+            },
+        )
+    if args.output_csv:
+        write_csv_report(
+            args.output_csv,
+            rows=robustness_rows(metrics, top_k=args.top_k),
+            fieldnames=["test", "metric", "value"],
+        )
 
 
 if __name__ == "__main__":

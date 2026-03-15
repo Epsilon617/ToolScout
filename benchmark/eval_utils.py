@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import copy
+import csv
 import hashlib
 import json
+import math
 import random
 import re
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
@@ -21,22 +24,27 @@ from toolscout import (
     ToolRegistry,
     ToolRetriever,
 )
+from toolscout.encoder.tool_encoder import ToolEncoder
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SKILLS_DATASET = PROJECT_ROOT / "datasets" / "skills.json"
 TOKEN_PATTERN = re.compile(r"[A-Za-z0-9_]+|[\u4e00-\u9fff]+")
 
-METHOD_ORDER = ["random", "semantic", "semantic_rerank", "toolscout"]
+METHOD_ORDER = ["random", "lexical", "semantic", "semantic_rerank", "toolscout"]
 METHOD_LABELS = {
     "random": "Random Retrieval",
+    "lexical": "Lexical BM25",
     "semantic": "Semantic Retrieval",
     "semantic_rerank": "Semantic + Rerank",
     "toolscout": "ToolScout",
 }
 METHOD_ALIASES = {
     "baseline": "semantic",
+    "bm25": "lexical",
+    "lexical_bm25": "lexical",
     "random_retrieval": "random",
+    "lexical_retrieval": "lexical",
     "semantic_retrieval": "semantic",
     "semantic_plus_rerank": "semantic_rerank",
 }
@@ -81,12 +89,22 @@ class EvaluationRuntime:
     skill_registry: Optional[SkillRegistry]
     skill_retriever: Optional[SkillRetriever]
     feedback_store: ExecutionFeedbackStore
+    lexical_index: "LexicalIndex"
     _tempdir: Optional[tempfile.TemporaryDirectory] = None
 
     def cleanup(self) -> None:
         if self._tempdir is not None:
             self._tempdir.cleanup()
             self._tempdir = None
+
+
+@dataclass
+class LexicalIndex:
+    tools: List[ToolDefinition]
+    term_frequencies: List[Counter]
+    doc_lengths: List[int]
+    doc_frequencies: Dict[str, int]
+    average_doc_length: float
 
 
 def load_json(path: Path) -> Any:
@@ -206,6 +224,24 @@ def format_dataset_statistics(stats: Mapping[str, object]) -> str:
     )
 
 
+def write_json_report(path: Path, payload: Mapping[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def write_csv_report(
+    path: Path,
+    rows: Sequence[Mapping[str, object]],
+    fieldnames: Sequence[str],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(fieldnames))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({name: row.get(name) for name in fieldnames})
+
+
 def lexical_overlap_score(query: str, tool: ToolDefinition) -> float:
     query_tokens = set(tokenize(query))
     if not query_tokens:
@@ -305,6 +341,86 @@ def semantic_search_results(
     ]
 
 
+def build_lexical_index(tools: Sequence[ToolDefinition]) -> LexicalIndex:
+    term_frequencies: List[Counter] = []
+    doc_lengths: List[int] = []
+    doc_frequencies: Counter = Counter()
+
+    for tool in tools:
+        tokens = tokenize(tool_text(tool))
+        frequencies = Counter(tokens)
+        term_frequencies.append(frequencies)
+        doc_lengths.append(len(tokens))
+        for token in frequencies:
+            doc_frequencies[token] += 1
+
+    average_doc_length = (
+        sum(doc_lengths) / len(doc_lengths) if doc_lengths else 0.0
+    )
+    return LexicalIndex(
+        tools=list(tools),
+        term_frequencies=term_frequencies,
+        doc_lengths=doc_lengths,
+        doc_frequencies=dict(doc_frequencies),
+        average_doc_length=average_doc_length,
+    )
+
+
+def lexical_bm25_search(
+    query: str,
+    lexical_index: LexicalIndex,
+    top_k: int,
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> List[RetrievalResult]:
+    query_terms = list(dict.fromkeys(tokenize(query)))
+    if not lexical_index.tools:
+        return []
+
+    corpus_size = len(lexical_index.tools)
+    average_doc_length = lexical_index.average_doc_length or 1.0
+    scored: List[RetrievalResult] = []
+
+    for tool, term_frequency, doc_length in zip(
+        lexical_index.tools,
+        lexical_index.term_frequencies,
+        lexical_index.doc_lengths,
+    ):
+        score = 0.0
+        for term in query_terms:
+            frequency = term_frequency.get(term, 0)
+            if frequency <= 0:
+                continue
+            doc_frequency = lexical_index.doc_frequencies.get(term, 0)
+            idf = math.log(
+                1.0 + ((corpus_size - doc_frequency + 0.5) / (doc_frequency + 0.5))
+            )
+            denominator = frequency + k1 * (
+                1.0 - b + b * (doc_length / average_doc_length)
+            )
+            score += idf * ((frequency * (k1 + 1.0)) / denominator)
+
+        scored.append(
+            RetrievalResult(
+                tool=tool,
+                score=score,
+                rank=0,
+                source="lexical",
+            )
+        )
+
+    scored.sort(key=lambda item: (item.score, item.tool.name), reverse=True)
+    return [
+        RetrievalResult(
+            tool=result.tool,
+            score=result.score,
+            rank=rank,
+            source=result.source,
+        )
+        for rank, result in enumerate(scored[:top_k], start=1)
+    ]
+
+
 def rerank_without_feedback(
     query: str,
     results: Sequence[RetrievalResult],
@@ -361,9 +477,20 @@ def build_runtime(
     feedback_top_k: int = 5,
     warmup_passes: int = 8,
     warmup_seed: int = 7,
+    encoder_backend: str = "auto",
+    encoder_model_name: Optional[str] = None,
+    encoder_device: Optional[str] = None,
 ) -> EvaluationRuntime:
     registry = build_registry(tool_dataset)
-    retriever = ToolRetriever(registry=registry)
+    encoder_kwargs: Dict[str, Any] = {"backend": encoder_backend}
+    if encoder_model_name is not None:
+        encoder_kwargs["model_name"] = encoder_model_name
+    if encoder_device is not None:
+        encoder_kwargs["device"] = encoder_device
+    retriever = ToolRetriever(
+        registry=registry,
+        encoder=ToolEncoder(**encoder_kwargs),
+    )
     retriever.fit()
 
     skill_registry = None
@@ -385,6 +512,7 @@ def build_runtime(
         skill_registry=skill_registry,
         skill_retriever=skill_retriever,
         feedback_store=feedback_store,
+        lexical_index=build_lexical_index(registry.list_tools()),
         _tempdir=tempdir,
     )
     if feedback_queries:
@@ -516,6 +644,13 @@ def search_with_method(
 
     if selected_method == "random":
         return random_search(query, tools=tools, top_k=top_k, seed=random_seed)
+    if selected_method == "lexical":
+        lexical_index = (
+            build_lexical_index(candidate_tools)
+            if candidate_tools is not None
+            else runtime.lexical_index
+        )
+        return lexical_bm25_search(query, lexical_index=lexical_index, top_k=top_k)
     if selected_method == "semantic":
         if candidate_tools is not None:
             return runtime.retriever.search_candidates(

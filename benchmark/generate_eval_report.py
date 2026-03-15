@@ -19,6 +19,8 @@ from benchmark.eval_utils import (
     load_json,
     method_label,
     search_with_method,
+    write_csv_report,
+    write_json_report,
 )
 from benchmark.hard_negative_eval import evaluate_hard_negatives
 from benchmark.robustness_eval import evaluate_robustness
@@ -91,6 +93,16 @@ def main() -> None:
         type=int,
         default=5,
         help="Number of tools to retrieve for recall and pass@k metrics.",
+    )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        help="Optional path to write structured JSON results.",
+    )
+    parser.add_argument(
+        "--output-csv",
+        type=Path,
+        help="Optional path to write the main comparison table as CSV.",
     )
     args = parser.parse_args()
 
@@ -203,6 +215,31 @@ def main() -> None:
         ]
     )
     print("\n".join(lines))
+
+    if args.output_json:
+        write_json_report(
+            args.output_json,
+            {
+                "evaluation": "report",
+                "top_k": args.top_k,
+                "dataset_statistics": stats,
+                "comparison_rows": comparison_rows,
+                "baseline_vs_toolscout": {
+                    "precision_at_1_baseline": semantic_metrics["precision_at_1"],
+                    "precision_at_1_toolscout": toolscout_metrics["precision_at_1"],
+                    "pass_at_1_baseline": semantic_metrics["pass_at_1"],
+                    "pass_at_1_toolscout": toolscout_metrics["pass_at_1"],
+                    "execution_gain": gain,
+                },
+                "robustness": robustness,
+            },
+        )
+    if args.output_csv:
+        write_csv_report(
+            args.output_csv,
+            rows=comparison_rows,
+            fieldnames=["method", "precision_at_1", "recall_at_k", "pass_at_1", "avg_latency_ms"],
+        )
 
 
 if __name__ == "__main__":
