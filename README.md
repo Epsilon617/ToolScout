@@ -37,6 +37,13 @@ toolscout skill "latest Nvidia news"
 python examples/retrieval_demo.py
 ```
 
+## Engineering Highlights
+
+- Packaged `ToolScout` as a reusable Python library and CLI for large-scale tool routing.
+- Built an offline evaluation harness spanning retrieval quality, hard negatives, end-to-end simulation, and robustness checks.
+- Added execution-aware ranking, simulator-backed feedback loops, and report generation for reproducible benchmarking.
+- Integrated MCP-style tool loading plus runnable examples for simple agents, LangGraph, and OpenAI-compatible workflows.
+
 ## Motivation
 
 ToolScout is built for the failure modes that appear once agent systems stop being toy demos.
